@@ -1,0 +1,70 @@
+#!/bin/bash
+
+INPUT_DIR="./input"
+OUTPUT_DIR="./output"
+TARGET_SIZE=512
+MARGIN=16
+INNER_SIZE=$((TARGET_SIZE - MARGIN * 2))
+BACKGROUND_COLOR="none"
+# ---------------------
+
+if ! command -v magick &> /dev/null && ! command -v convert &> /dev/null; then
+    echo "Error: ImageMagick is not installed."
+    echo "Please install it using 'brew install imagemagick' or 'sudo apt install imagemagick'"
+    exit 1
+fi
+
+if command -v magick &> /dev/null; then
+    CMD="magick"
+else
+    CMD="convert"
+fi
+
+if [ -d "$OUTPUT_DIR" ]; then
+    echo "Removing old output folder..."
+    rm -rf "$OUTPUT_DIR"
+fi
+
+if [ ! -d "$INPUT_DIR" ]; then
+    echo "Input folder '$INPUT_DIR' not found. Creating a fresh one for you."
+    mkdir -p "$INPUT_DIR"
+    exit 0
+fi
+
+mkdir -p "$OUTPUT_DIR"
+
+echo "Converting images to ${TARGET_SIZE}x${TARGET_SIZE} with ${MARGIN}px margin..."
+
+shopt -s nocaseglob nullglob
+
+files=("$INPUT_DIR"/*.{jpg,jpeg,png,gif,bmp,tiff,webp})
+
+if [ ${#files[@]} -eq 0 ]; then
+    echo "No images found in '$INPUT_DIR'."
+else
+    for file in "${files[@]}"; do
+
+        filename=$(basename -- "$file")
+        name_only="${filename%.*}"
+
+        echo "Processing: $filename"
+
+        "$CMD" "$file" \
+            -resize "${INNER_SIZE}x${INNER_SIZE}" \
+            -gravity center \
+            -background "$BACKGROUND_COLOR" \
+            -extent "${TARGET_SIZE}x${TARGET_SIZE}" \
+            "$OUTPUT_DIR/${name_only}.png"
+
+    done
+fi
+
+shopt -u nocaseglob nullglob
+
+echo "Cleaning up input folder..."
+rm -rf "$INPUT_DIR"
+mkdir -p "$INPUT_DIR"
+
+echo "---------------------------------------------------"
+echo "Done! Fresh output created in '$OUTPUT_DIR'."
+echo "Input folder has been reset."
